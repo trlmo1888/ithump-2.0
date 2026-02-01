@@ -887,10 +887,32 @@
             padding: 40px 20px;
             font-size: 16px;
         }
+
+        /* Long-press confirmation indicator */
+        .longpress-indicator {
+            position: fixed;
+            top: 8px;
+            left: 8px;
+            width: 3px;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        .longpress-indicator.show {
+            opacity: 1;
+        }
     </style>
 </head>
 
 <body>
+    <!-- Long-press confirmation indicator -->
+    <div class="longpress-indicator" id="longpress-indicator"></div>
+    
     <div class="calculator">
         <div class="display">
             <div class="display-text" id="display" style="font-size: 96px;">0</div>
@@ -1485,13 +1507,29 @@
             e.preventDefault();
             isEqualsLongPress = false;
 
-            // Only enable long press in custom mode
-            if (magicMode === 'custom' && customResult) {
+            // Enable long press in custom mode OR spectator+ custom submode
+            const shouldEnableLongPress = 
+                (magicMode === 'custom' && customResult) ||
+                (magicMode === 'spectator' && spectatorSubmode === 'custom' && spectatorCustomResult);
+
+            if (shouldEnableLongPress) {
                 equalsLongPressTimer = setTimeout(() => {
                     isEqualsLongPress = true;
                     customModeActivated = true;
-                    // Visual feedback could be added here
-                }, 1000); // 1 second
+                    
+                    // Show confirmation indicator
+                    showLongPressIndicator();
+                }, 850); // 0.85 seconds
+            }
+        }
+
+        function showLongPressIndicator() {
+            const indicator = document.getElementById('longpress-indicator');
+            if (indicator) {
+                indicator.classList.add('show');
+                setTimeout(() => {
+                    indicator.classList.remove('show');
+                }, 2000); // 2 seconds visible
             }
         }
 
@@ -1867,8 +1905,8 @@ Número Favorito: ${favNumber}`;
                         <div class="registry-item-header">
                             <div class="registry-name">${entry.name}</div>
                             <div class="registry-actions">
-                                <button class="registry-edit-btn" onclick="openCommentEditor(${entry.id})" title="Añadir comentario">⚙️</button>
-                                <button class="registry-delete-btn" onclick="deleteRegistry(${entry.id})" title="Eliminar">🗑️</button>
+                                <button class="registry-edit-btn" data-action="edit" data-id="${entry.id}" title="Añadir comentario">⚙️</button>
+                                <button class="registry-delete-btn" data-action="delete" data-id="${entry.id}" title="Eliminar">🗑️</button>
                             </div>
                         </div>
                         <div class="registry-info">
@@ -1903,6 +1941,22 @@ Número Favorito: ${favNumber}`;
                     </div>
                 `;
             }).join('');
+            
+            // Add event delegation for buttons
+            listContainer.querySelectorAll('.registry-edit-btn, .registry-delete-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const action = this.getAttribute('data-action');
+                    const id = parseInt(this.getAttribute('data-id'));
+                    
+                    if (action === 'edit') {
+                        openCommentEditor(id);
+                    } else if (action === 'delete') {
+                        deleteRegistry(id);
+                    }
+                });
+            });
         }
 
         function deleteRegistry(id) {
@@ -1948,4 +2002,3 @@ Número Favorito: ${favNumber}`;
 
 </body>
 </html> 
- 
