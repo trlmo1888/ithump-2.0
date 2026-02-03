@@ -4,7 +4,7 @@
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Calculadora</title>
-        <!-- iOS Web App -->
+     <!-- iOS Web App -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Calculadora">
@@ -267,7 +267,7 @@
             background: #1c1c1e;
             border-radius: 20px;
             padding: 30px;
-            max-width: 500px;
+            max-width: 550px;
             width: 95%;
             max-height: 80vh;
             display: flex;
@@ -1060,6 +1060,15 @@
                             <input type="text" class="custom-input" id="spectator-custom-result" placeholder="Ej: 123456789" maxlength="16">
                         </div>
                     </div>
+
+                    <!-- Options for custom2 submode -->
+                    <div id="spectator-custom2-options" style="display: none;">
+                        <div class="input-label" style="margin-bottom: 10px;">Orden de entrada:</div>
+                        <div class="format-buttons">
+                            <button class="format-btn selected" id="order-name-number-btn" onclick="selectInputOrder(&#39;name-number&#39;)">Nombre, Número</button>
+                            <button class="format-btn" id="order-number-name-btn" onclick="selectInputOrder(&#39;number-name&#39;)">Número, Nombre</button>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Registry Button -->
@@ -1164,6 +1173,7 @@
         let spectatorNumbers = []; // [birthdate, favNumber, ...extras]
         let spectatorCustomResult = '';
         let custom2Result = ''; // Personalizado 2: number entered via popup
+        let inputOrder = 'name-number'; // 'name-number' or 'number-name' for spectator custom2
         let textTemplate = 'Hoy haré un poco de magia para [Nombre]. Tiene [Edad] años y me da la sensación de que su signo zodiacal es [Signo zodiacal]. Cada pequeño detalle suyo ha sido parte de la ilusión que he creado.';
 
         // Theme variable
@@ -1655,13 +1665,19 @@
                 numberInput.value = '';
                 numberInput.focus();
             } else if (magicMode === 'spectator' && spectatorSubmode === 'custom2') {
-                // Espectador+ custom2: name + number
+                // Espectador+ custom2: single field with order based on inputOrder
                 titleEl.textContent = 'Datos del espectador';
                 nameField.style.display = 'block';
-                nameLabel.style.display = 'block';
-                numberField.style.display = 'block';
+                nameLabel.style.display = 'none';
+                numberField.style.display = 'none';
+                
+                if (inputOrder === 'name-number') {
+                    nameInput.placeholder = 'Ej: Juan, 12345678';
+                } else {
+                    nameInput.placeholder = 'Ej: 12345678, Juan';
+                }
+                
                 nameInput.value = '';
-                numberInput.value = '';
                 nameInput.focus();
             } else {
                 // Espectador+ hora o personalizado: solo nombre
@@ -1669,6 +1685,7 @@
                 nameField.style.display = 'block';
                 nameLabel.style.display = 'none';
                 numberField.style.display = 'none';
+                nameInput.placeholder = 'Escribe el nombre...';
                 nameInput.value = '';
                 nameInput.focus();
             }
@@ -1719,6 +1736,7 @@
             // Hide all submode options
             document.getElementById('spectator-date-time-buttons').style.display = 'none';
             document.getElementById('spectator-custom-options').style.display = 'none';
+            document.getElementById('spectator-custom2-options').style.display = 'none';
 
             if (submode === 'date') {
                 document.getElementById('spectator-date-btn').classList.add('selected');
@@ -1728,7 +1746,7 @@
                 document.getElementById('spectator-custom-options').style.display = 'block';
             } else if (submode === 'custom2') {
                 document.getElementById('spectator-custom2-btn').classList.add('selected');
-                // custom2 in spectator: no extra menu options, number comes from popup
+                document.getElementById('spectator-custom2-options').style.display = 'block';
                 custom2Result = '';
             }
         }
@@ -1748,19 +1766,90 @@
             }
         }
 
+        function selectInputOrder(order) {
+            inputOrder = order;
+
+            document.getElementById('order-name-number-btn').classList.remove('selected');
+            document.getElementById('order-number-name-btn').classList.remove('selected');
+
+            if (order === 'name-number') {
+                document.getElementById('order-name-number-btn').classList.add('selected');
+            } else {
+                document.getElementById('order-number-name-btn').classList.add('selected');
+            }
+        }
+
         function confirmName() {
             const numberInput = document.getElementById('popup-number');
+            const nameInput = document.getElementById('spectator-name');
 
             if (magicMode === 'custom2') {
                 // Standalone custom2: only number
                 custom2Result = numberInput.value.replace(/\D/g, '');
             } else if (magicMode === 'spectator' && spectatorSubmode === 'custom2') {
-                // Espectador+ custom2: name + number
-                spectatorName = document.getElementById('spectator-name').value;
-                custom2Result = numberInput.value.replace(/\D/g, '');
+                // Espectador+ custom2: parse based on inputOrder
+                const input = nameInput.value.trim();
+                let name = '';
+                let number = '';
+                
+                // Parse with comma first
+                if (input.includes(',')) {
+                    const parts = input.split(',').map(p => p.trim());
+                    
+                    if (inputOrder === 'name-number') {
+                        // First part is name, rest is number
+                        name = parts[0];
+                        number = parts.slice(1).join('').replace(/\D/g, '');
+                    } else {
+                        // First part is number, rest is name
+                        number = parts[0].replace(/\D/g, '');
+                        name = parts.slice(1).join(' ').trim();
+                    }
+                }
+                // Parse with space
+                else if (input.includes(' ')) {
+                    if (inputOrder === 'name-number') {
+                        // Name first, number last
+                        const lastSpaceIndex = input.lastIndexOf(' ');
+                        name = input.substring(0, lastSpaceIndex).trim();
+                        number = input.substring(lastSpaceIndex + 1).trim().replace(/\D/g, '');
+                    } else {
+                        // Number first, name after first space
+                        const firstSpaceIndex = input.indexOf(' ');
+                        number = input.substring(0, firstSpaceIndex).trim().replace(/\D/g, '');
+                        name = input.substring(firstSpaceIndex + 1).trim();
+                    }
+                }
+                // No separator: try to detect
+                else {
+                    if (inputOrder === 'name-number') {
+                        // Assume text first, numbers at end
+                        const match = input.match(/^([^\d]*)(\d+)$/);
+                        if (match) {
+                            name = match[1].trim();
+                            number = match[2];
+                        } else {
+                            name = input;
+                            number = '';
+                        }
+                    } else {
+                        // Assume numbers first, text at end
+                        const match = input.match(/^(\d+)(.*)$/);
+                        if (match) {
+                            number = match[1];
+                            name = match[2].trim();
+                        } else {
+                            name = input;
+                            number = '';
+                        }
+                    }
+                }
+                
+                spectatorName = name;
+                custom2Result = number;
             } else {
                 // Espectador+ hora/personalizado: only name
-                spectatorName = document.getElementById('spectator-name').value;
+                spectatorName = nameInput.value.trim();
             }
 
             document.getElementById('name-popup').classList.remove('active');
