@@ -209,11 +209,13 @@
             justify-content: center;
             padding: 0;
             margin: 0;
-            line-height: 0;
+            line-height: 1;
         }
 
         .btn-orange span {
-            transform: translateY(-2px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .btn-orange.active {
@@ -549,6 +551,19 @@
             font-size: 18px;
             text-align: center;
             margin-bottom: 20px;
+        }
+
+        .name-input:focus {
+            outline: none;
+            border-color: #ff9f0a;
+        }
+
+        .popup-field-label {
+            color: #999;
+            font-size: 13px;
+            text-align: center;
+            margin-bottom: 6px;
+            margin-top: 4px;
         }
 
         .ok-btn {
@@ -990,6 +1005,11 @@
                     <input type="text" class="custom-input" id="custom-result" placeholder="Ej: 123456789" maxlength="16">
                 </div>
 
+                <button class="mode-button" id="custom2-mode-btn" onclick="selectMode(&#39;custom2&#39;)">
+                    <span>Personalizado 2</span>
+                    <span class="checkmark"></span>
+                </button>
+
                 <!-- Spectator+ Mode -->
                 <button class="mode-button" id="spectator-mode-btn" onclick="selectMode(&#39;spectator&#39;)">
                     <span>Espectador+</span>
@@ -1000,6 +1020,7 @@
                     <div class="submode-buttons">
                         <button class="submode-btn selected" id="spectator-date-btn" onclick="selectSpectatorSubmode(&#39;date&#39;)">Hora</button>
                         <button class="submode-btn" id="spectator-custom-btn" onclick="selectSpectatorSubmode(&#39;custom&#39;)">Personalizado</button>
+                        <button class="submode-btn" id="spectator-custom2-btn" onclick="selectSpectatorSubmode(&#39;custom2&#39;)">Personalizado 2</button>
                     </div>
 
                     <!-- Format buttons -->
@@ -1042,11 +1063,18 @@
         </div>
     </div>
 
-    <!-- Name Popup -->
+    <!-- Name/Number Popup -->
     <div class="name-popup" id="name-popup">
         <div class="name-popup-content">
-            <div class="name-popup-title">Nombre del espectador</div>
-            <input type="text" class="name-input" id="spectator-name" placeholder="Escribe el nombre...">
+            <div class="name-popup-title" id="name-popup-title">Nombre del espectador</div>
+            <div id="name-field" style="display: block;">
+                <div class="popup-field-label" id="name-field-label" style="display: none;">Nombre</div>
+                <input type="text" class="name-input" id="spectator-name" placeholder="Escribe el nombre...">
+            </div>
+            <div id="number-field" style="display: none;">
+                <div class="popup-field-label">Número</div>
+                <input type="text" class="name-input" id="popup-number" placeholder="Introduce el número..." inputmode="numeric">
+            </div>
             <button class="ok-btn" onclick="confirmName()">OK</button>
         </div>
     </div>
@@ -1123,11 +1151,12 @@
         let customModeActivated = false;
 
         // Spectator+ mode variables
-        let spectatorSubmode = 'date'; // 'date' or 'custom'
+        let spectatorSubmode = 'date'; // 'date', 'custom', or 'custom2'
         let spectatorFormat = 'list'; // 'list' or 'text'
         let spectatorName = '';
         let spectatorNumbers = []; // [birthdate, favNumber, ...extras]
         let spectatorCustomResult = '';
+        let custom2Result = ''; // Personalizado 2: number entered via popup
         let textTemplate = 'Hoy haré un poco de magia para [Nombre]. Tiene [Edad] años y me da la sensación de que su signo zodiacal es [Signo zodiacal]. Cada pequeño detalle suyo ha sido parte de la ilusión que he creado.';
 
         // Theme variable
@@ -1277,9 +1306,19 @@
                 return;
             }
 
-            // In Spectator+ mode without name, show name popup
+            // In Spectator+ mode without name (hora/personalizado) or without name+number (custom2), show popup
             if (magicMode === 'spectator' && !spectatorName) {
-                document.getElementById('name-popup').classList.add('active');
+                showPopupForMode();
+                return;
+            }
+            if (magicMode === 'spectator' && spectatorSubmode === 'custom2' && !custom2Result) {
+                showPopupForMode();
+                return;
+            }
+
+            // In custom2 standalone without number, show popup
+            if (magicMode === 'custom2' && !custom2Result) {
+                showPopupForMode();
                 return;
             }
 
@@ -1324,6 +1363,8 @@
             if (screenLocked) return;
 
             const evt = getCurrentEvent();
+            // Si el clic cae en un <span> dentro del botón, subir al botón padre
+            const btnTarget = evt && evt.target ? (evt.target.closest('button') || evt.target) : null;
 
             // DATE MODE: Check if we should activate magic (any multiplications + plus)
             if (magicMode === 'date' && op === '+' && multiplicationCount >= 1 && !magicTriggered) {
@@ -1336,7 +1377,7 @@
 
                 // Highlight + button
                 document.querySelectorAll('.btn-orange').forEach(btn => btn.classList.remove('active'));
-                if (evt && evt.target) evt.target.classList.add('active');
+                if (btnTarget) btnTarget.classList.add('active');
                 return;
             }
 
@@ -1351,7 +1392,18 @@
 
                 // Highlight + button
                 document.querySelectorAll('.btn-orange').forEach(btn => btn.classList.remove('active'));
-                if (evt && evt.target) evt.target.classList.add('active');
+                if (btnTarget) btnTarget.classList.add('active');
+                return;
+            }
+
+            // CUSTOM2 MODE (standalone): same as custom but uses custom2Result
+            if (magicMode === 'custom2' && op === '+' && customModeActivated && !magicTriggered) {
+                waitingForMagicTrigger = true;
+                previousValue = currentValue;
+                operation = '+';
+                shouldResetDisplay = true;
+                document.querySelectorAll('.btn-orange').forEach(btn => btn.classList.remove('active'));
+                if (btnTarget) btnTarget.classList.add('active');
                 return;
             }
 
@@ -1363,7 +1415,7 @@
                     operation = '+';
                     shouldResetDisplay = true;
                     document.querySelectorAll('.btn-orange').forEach(btn => btn.classList.remove('active'));
-                    if (evt && evt.target) evt.target.classList.add('active');
+                    if (btnTarget) btnTarget.classList.add('active');
                     return;
                 } else if (spectatorSubmode === 'custom' && customModeActivated) {
                     waitingForMagicTrigger = true;
@@ -1371,7 +1423,15 @@
                     operation = '+';
                     shouldResetDisplay = true;
                     document.querySelectorAll('.btn-orange').forEach(btn => btn.classList.remove('active'));
-                    if (evt && evt.target) evt.target.classList.add('active');
+                    if (btnTarget) btnTarget.classList.add('active');
+                    return;
+                } else if (spectatorSubmode === 'custom2' && customModeActivated) {
+                    waitingForMagicTrigger = true;
+                    previousValue = currentValue;
+                    operation = '+';
+                    shouldResetDisplay = true;
+                    document.querySelectorAll('.btn-orange').forEach(btn => btn.classList.remove('active'));
+                    if (btnTarget) btnTarget.classList.add('active');
                     return;
                 }
             }
@@ -1387,8 +1447,8 @@
 
             // Update active state
             document.querySelectorAll('.btn-orange').forEach(btn => btn.classList.remove('active'));
-            if (evt && evt.target) {
-                evt.target.classList.add('active');
+            if (btnTarget) {
+                btnTarget.classList.add('active');
             }
         }
 
@@ -1487,11 +1547,15 @@
                 target = getTargetDateTime();
             } else if (magicMode === 'custom') {
                 target = customResult || '0';
+            } else if (magicMode === 'custom2') {
+                target = custom2Result || '0';
             } else if (magicMode === 'spectator') {
                 if (spectatorSubmode === 'date') {
                     target = getTargetDateTime();
-                } else {
+                } else if (spectatorSubmode === 'custom') {
                     target = spectatorCustomResult || '0';
+                } else if (spectatorSubmode === 'custom2') {
+                    target = custom2Result || '0';
                 }
             }
 
@@ -1507,10 +1571,12 @@
             e.preventDefault();
             isEqualsLongPress = false;
 
-            // Enable long press in custom mode OR spectator+ custom submode
+            // Enable long press in custom mode OR spectator+ custom submode OR custom2 (standalone or spectator+)
             const shouldEnableLongPress = 
                 (magicMode === 'custom' && customResult) ||
-                (magicMode === 'spectator' && spectatorSubmode === 'custom' && spectatorCustomResult);
+                (magicMode === 'custom2' && custom2Result) ||
+                (magicMode === 'spectator' && spectatorSubmode === 'custom' && spectatorCustomResult) ||
+                (magicMode === 'spectator' && spectatorSubmode === 'custom2' && custom2Result);
 
             if (shouldEnableLongPress) {
                 equalsLongPressTimer = setTimeout(() => {
@@ -1555,10 +1621,52 @@
         function closeSecretMenu() {
             document.getElementById('secret-menu').classList.remove('active');
 
-            // If Spectator+ mode, show name popup
-            if (magicMode === 'spectator') {
-                document.getElementById('name-popup').classList.add('active');
+            // custom2 standalone: show popup asking only for number
+            if (magicMode === 'custom2') {
+                showPopupForMode();
             }
+            // Spectator+ mode: show popup (name, or name+number depending on submode)
+            else if (magicMode === 'spectator') {
+                showPopupForMode();
+            }
+        }
+
+        // Configures and shows the name popup fields depending on current mode/submode
+        function showPopupForMode() {
+            const titleEl = document.getElementById('name-popup-title');
+            const nameField = document.getElementById('name-field');
+            const nameLabel = document.getElementById('name-field-label');
+            const numberField = document.getElementById('number-field');
+            const nameInput = document.getElementById('spectator-name');
+            const numberInput = document.getElementById('popup-number');
+
+            if (magicMode === 'custom2') {
+                // Standalone custom2: only number
+                titleEl.textContent = 'Número personalizado';
+                nameField.style.display = 'none';
+                numberField.style.display = 'block';
+                numberInput.value = '';
+                numberInput.focus();
+            } else if (magicMode === 'spectator' && spectatorSubmode === 'custom2') {
+                // Espectador+ custom2: name + number
+                titleEl.textContent = 'Datos del espectador';
+                nameField.style.display = 'block';
+                nameLabel.style.display = 'block';
+                numberField.style.display = 'block';
+                nameInput.value = '';
+                numberInput.value = '';
+                nameInput.focus();
+            } else {
+                // Espectador+ hora o personalizado: solo nombre
+                titleEl.textContent = 'Nombre del espectador';
+                nameField.style.display = 'block';
+                nameLabel.style.display = 'none';
+                numberField.style.display = 'none';
+                nameInput.value = '';
+                nameInput.focus();
+            }
+
+            document.getElementById('name-popup').classList.add('active');
         }
 
         function selectMode(mode) {
@@ -1567,6 +1675,7 @@
             // Remove all selected states
             document.getElementById('date-mode-btn').classList.remove('selected');
             document.getElementById('custom-mode-btn').classList.remove('selected');
+            document.getElementById('custom2-mode-btn').classList.remove('selected');
             document.getElementById('spectator-mode-btn').classList.remove('selected');
 
             // Hide all options
@@ -1582,6 +1691,10 @@
                 document.getElementById('custom-mode-btn').classList.add('selected');
                 document.getElementById('custom-input-container').classList.add('active');
                 document.getElementById('custom-time-buttons').style.display = 'flex';
+            } else if (mode === 'custom2') {
+                document.getElementById('custom2-mode-btn').classList.add('selected');
+                // custom2 has no menu options: number is entered via popup
+                custom2Result = '';
             } else if (mode === 'spectator') {
                 document.getElementById('spectator-mode-btn').classList.add('selected');
                 document.getElementById('spectator-options').style.display = 'block';
@@ -1594,15 +1707,22 @@
 
             document.getElementById('spectator-date-btn').classList.remove('selected');
             document.getElementById('spectator-custom-btn').classList.remove('selected');
+            document.getElementById('spectator-custom2-btn').classList.remove('selected');
+
+            // Hide all submode options
+            document.getElementById('spectator-date-time-buttons').style.display = 'none';
+            document.getElementById('spectator-custom-options').style.display = 'none';
 
             if (submode === 'date') {
                 document.getElementById('spectator-date-btn').classList.add('selected');
                 document.getElementById('spectator-date-time-buttons').style.display = 'flex';
-                document.getElementById('spectator-custom-options').style.display = 'none';
-            } else {
+            } else if (submode === 'custom') {
                 document.getElementById('spectator-custom-btn').classList.add('selected');
-                document.getElementById('spectator-date-time-buttons').style.display = 'none';
                 document.getElementById('spectator-custom-options').style.display = 'block';
+            } else if (submode === 'custom2') {
+                document.getElementById('spectator-custom2-btn').classList.add('selected');
+                // custom2 in spectator: no extra menu options, number comes from popup
+                custom2Result = '';
             }
         }
 
@@ -1622,7 +1742,20 @@
         }
 
         function confirmName() {
-            spectatorName = document.getElementById('spectator-name').value;
+            const numberInput = document.getElementById('popup-number');
+
+            if (magicMode === 'custom2') {
+                // Standalone custom2: only number
+                custom2Result = numberInput.value.replace(/\D/g, '');
+            } else if (magicMode === 'spectator' && spectatorSubmode === 'custom2') {
+                // Espectador+ custom2: name + number
+                spectatorName = document.getElementById('spectator-name').value;
+                custom2Result = numberInput.value.replace(/\D/g, '');
+            } else {
+                // Espectador+ hora/personalizado: only name
+                spectatorName = document.getElementById('spectator-name').value;
+            }
+
             document.getElementById('name-popup').classList.remove('active');
             spectatorNumbers = [];
         }
@@ -1823,6 +1956,7 @@
             customModeActivated = false;
             spectatorNumbers = [];
             spectatorName = ''; // Reset name so AC will prompt for name again
+            custom2Result = ''; // Reset number so popup will re-appear
 
             document.querySelectorAll('.btn-orange').forEach(btn => btn.classList.remove('active'));
             updateDisplay();
@@ -2000,5 +2134,4 @@ Número Favorito: ${favNumber}`;
     </script>
 
 
-</body>
-</html> 
+</body></html>
