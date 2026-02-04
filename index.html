@@ -4,7 +4,7 @@
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Calculadora</title>
-     <!-- iOS Web App -->
+         <!-- iOS Web App -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Calculadora">
@@ -1598,6 +1598,11 @@
             if (shouldEnableLongPress) {
                 equalsLongPressTimer = setTimeout(() => {
                     isEqualsLongPress = true;
+                    
+                    // IMPORTANTE: Calcular el resultado ANTES de activar el modo
+                    calculate();
+                    
+                    // Ahora activar el modo custom
                     customModeActivated = true;
                     
                     // Show confirmation indicator
@@ -1619,13 +1624,13 @@
         function endEqualsLongPress() {
             clearTimeout(equalsLongPressTimer);
 
-            // If it was a long press, don't execute normal click
+            // If it was a long press, don't calculate again (already calculated in timeout)
             if (isEqualsLongPress) {
                 isEqualsLongPress = false;
-                return false; // Prevent normal click
+                return false; // Prevent double calculation
             }
 
-            // Should behave like a click if it wasn't a long press
+            // Normal click: calculate normally
             calculate();
             isEqualsLongPress = false;
         }
