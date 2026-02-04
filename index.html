@@ -4,13 +4,6 @@
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Calculadora</title>
-         <!-- iOS Web App -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="Calculadora">
-<meta name="theme-color" content="#000000">
-
-<link rel="apple-touch-icon" href="icon.png">
      <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="theme-color" content="#000000">
@@ -1030,6 +1023,13 @@
                         <button class="submode-btn" id="spectator-custom2-btn" onclick="selectSpectatorSubmode(&#39;custom2&#39;)">Personalizado 2</button>
                     </div>
 
+                    <!-- Name/No Name buttons -->
+                    <div class="input-label" style="margin-top: 15px; margin-bottom: 10px;">Modo de nombre:</div>
+                    <div class="format-buttons">
+                        <button class="format-btn selected" id="name-mode-name-btn" onclick="selectNameMode(&#39;name&#39;)">Name</button>
+                        <button class="format-btn" id="name-mode-noname-btn" onclick="selectNameMode(&#39;noname&#39;)">No Name</button>
+                    </div>
+
                     <!-- Format buttons -->
                     <div class="format-buttons">
                         <button class="format-btn selected" id="format-list-btn" onclick="selectFormat(&#39;list&#39;)">Lista</button>
@@ -1112,7 +1112,7 @@
     <div class="template-popup" id="template-popup">
         <div class="template-popup-content">
             <div class="menu-header">
-                <div class="menu-title">Editar Template</div>
+                <div class="menu-title" id="template-popup-title">Editar Template</div>
                 <button class="close-btn" onclick="closeTemplateEditor()">✕</button>
             </div>
             <textarea class="template-textarea" id="template-text"></textarea>
@@ -1174,7 +1174,9 @@
         let spectatorCustomResult = '';
         let custom2Result = ''; // Personalizado 2: number entered via popup
         let inputOrder = 'name-number'; // 'name-number' or 'number-name' for spectator custom2
+        let nameMode = 'name'; // 'name' or 'noname' for spectator+
         let textTemplate = 'Hoy haré un poco de magia para [Nombre]. Tiene [Edad] años y me da la sensación de que su signo zodiacal es [Signo zodiacal]. Cada pequeño detalle suyo ha sido parte de la ilusión que he creado.';
+        let textTemplateNoName = 'Hoy haré un poco de magia para alguien muy especial. Tiene [Edad] años y me da la sensación de que su signo zodiacal es [Signo zodiacal]. Cada pequeño detalle suyo ha sido parte de la ilusión que he creado.';
 
         // Theme variable
         let currentTheme = 'iphone'; // 'iphone', 'sa', 'android-light', or 'android-dark'
@@ -1323,14 +1325,19 @@
                 return;
             }
 
-            // In Spectator+ mode without name (hora/personalizado) or without name+number (custom2), show popup
-            if (magicMode === 'spectator' && !spectatorName) {
-                showPopupForMode();
-                return;
-            }
-            if (magicMode === 'spectator' && spectatorSubmode === 'custom2' && !custom2Result) {
-                showPopupForMode();
-                return;
+            // In Spectator+ mode, check if we need to prompt for data
+            if (magicMode === 'spectator') {
+                // If nameMode is 'name' and no name entered, prompt
+                if (nameMode === 'name' && !spectatorName) {
+                    showPopupForMode();
+                    return;
+                }
+                // If custom2 and no number entered, prompt (both name and noname modes need number)
+                if (spectatorSubmode === 'custom2' && !custom2Result) {
+                    showPopupForMode();
+                    return;
+                }
+                // noname mode in date/custom: don't prompt for anything
             }
 
             // In custom2 standalone without number, show popup
@@ -1647,9 +1654,18 @@
             if (magicMode === 'custom2') {
                 showPopupForMode();
             }
-            // Spectator+ mode: show popup (name, or name+number depending on submode)
+            // Spectator+ mode: show popup only if nameMode requires it
             else if (magicMode === 'spectator') {
-                showPopupForMode();
+                // Si es noname, solo pedir número en custom2
+                if (nameMode === 'noname') {
+                    if (spectatorSubmode === 'custom2') {
+                        showPopupForMode(); // Solo pedir número
+                    }
+                    // En otros modos (date, custom) no pedir nada
+                } else {
+                    // Modo name: pedir nombre como siempre
+                    showPopupForMode();
+                }
             }
         }
 
@@ -1670,20 +1686,30 @@
                 numberInput.value = '';
                 numberInput.focus();
             } else if (magicMode === 'spectator' && spectatorSubmode === 'custom2') {
-                // Espectador+ custom2: single field with order based on inputOrder
-                titleEl.textContent = 'Datos del espectador';
-                nameField.style.display = 'block';
-                nameLabel.style.display = 'none';
-                numberField.style.display = 'none';
-                
-                if (inputOrder === 'name-number') {
-                    nameInput.placeholder = 'Ej: Juan, 12345678';
+                // Espectador+ custom2
+                if (nameMode === 'noname') {
+                    // No Name: solo pedir número
+                    titleEl.textContent = 'Número personalizado';
+                    nameField.style.display = 'none';
+                    numberField.style.display = 'block';
+                    numberInput.value = '';
+                    numberInput.focus();
                 } else {
-                    nameInput.placeholder = 'Ej: 12345678, Juan';
+                    // Name: pedir nombre y número según inputOrder
+                    titleEl.textContent = 'Datos del espectador';
+                    nameField.style.display = 'block';
+                    nameLabel.style.display = 'none';
+                    numberField.style.display = 'none';
+                    
+                    if (inputOrder === 'name-number') {
+                        nameInput.placeholder = 'Ej: Juan, 12345678';
+                    } else {
+                        nameInput.placeholder = 'Ej: 12345678, Juan';
+                    }
+                    
+                    nameInput.value = '';
+                    nameInput.focus();
                 }
-                
-                nameInput.value = '';
-                nameInput.focus();
             } else {
                 // Espectador+ hora o personalizado: solo nombre
                 titleEl.textContent = 'Nombre del espectador';
@@ -1784,6 +1810,19 @@
             }
         }
 
+        function selectNameMode(mode) {
+            nameMode = mode;
+
+            document.getElementById('name-mode-name-btn').classList.remove('selected');
+            document.getElementById('name-mode-noname-btn').classList.remove('selected');
+
+            if (mode === 'name') {
+                document.getElementById('name-mode-name-btn').classList.add('selected');
+            } else {
+                document.getElementById('name-mode-noname-btn').classList.add('selected');
+            }
+        }
+
         function confirmName() {
             const numberInput = document.getElementById('popup-number');
             const nameInput = document.getElementById('spectator-name');
@@ -1792,13 +1831,19 @@
                 // Standalone custom2: only number
                 custom2Result = numberInput.value.replace(/\D/g, '');
             } else if (magicMode === 'spectator' && spectatorSubmode === 'custom2') {
-                // Espectador+ custom2: parse based on inputOrder
-                const input = nameInput.value.trim();
-                let name = '';
-                let number = '';
-                
-                // Parse with comma first
-                if (input.includes(',')) {
+                // Espectador+ custom2
+                if (nameMode === 'noname') {
+                    // No Name: solo número
+                    spectatorName = ''; // Sin nombre
+                    custom2Result = numberInput.value.replace(/\D/g, '');
+                } else {
+                    // Name: parse based on inputOrder
+                    const input = nameInput.value.trim();
+                    let name = '';
+                    let number = '';
+                    
+                    // Parse with comma first
+                    if (input.includes(',')) {
                     const parts = input.split(',').map(p => p.trim());
                     
                     if (inputOrder === 'name-number') {
@@ -1852,6 +1897,7 @@
                 
                 spectatorName = name;
                 custom2Result = number;
+                } // End of nameMode === 'name'
             } else {
                 // Espectador+ hora/personalizado: only name
                 spectatorName = nameInput.value.trim();
@@ -1862,7 +1908,14 @@
         }
 
         function openTemplateEditor() {
-            document.getElementById('template-text').value = textTemplate;
+            // Load the correct template based on nameMode
+            if (nameMode === 'name') {
+                document.getElementById('template-text').value = textTemplate;
+                document.getElementById('template-popup-title').textContent = 'Editar Template (Name)';
+            } else {
+                document.getElementById('template-text').value = textTemplateNoName;
+                document.getElementById('template-popup-title').textContent = 'Editar Template (No Name)';
+            }
             document.getElementById('template-popup').classList.add('active');
         }
 
@@ -1871,7 +1924,12 @@
         }
 
         function saveTemplate() {
-            textTemplate = document.getElementById('template-text').value;
+            // Save to the correct template based on nameMode
+            if (nameMode === 'name') {
+                textTemplate = document.getElementById('template-text').value;
+            } else {
+                textTemplateNoName = document.getElementById('template-text').value;
+            }
             closeTemplateEditor();
         }
 
@@ -1983,12 +2041,20 @@
             const zodiac = getZodiacSign(birthdate);
 
             if (spectatorFormat === 'list') {
-                return `
-                    <ul class="info-list">
+                // Lista: mostrar u ocultar nombre según nameMode
+                let nameRow = '';
+                if (nameMode === 'name' && spectatorName) {
+                    nameRow = `
                         <li>
                             <div class="info-label">Nombre</div>
                             <div class="info-value">${spectatorName}</div>
                         </li>
+                    `;
+                }
+                
+                return `
+                    <ul class="info-list">
+                        ${nameRow}
                         <li>
                             <div class="info-label">Edad</div>
                             <div class="info-value">${age} años</div>
@@ -2004,9 +2070,18 @@
                     </ul>
                 `;
             } else {
-                // Text format
-                let text = textTemplate;
-                text = text.replace(/\[Nombre\]/g, spectatorName);
+                // Text format - use different template based on nameMode
+                let text;
+                
+                if (nameMode === 'name' && spectatorName) {
+                    // Use template with [Nombre]
+                    text = textTemplate;
+                    text = text.replace(/\[Nombre\]/g, spectatorName);
+                } else {
+                    // Use No Name template (without [Nombre])
+                    text = textTemplateNoName;
+                }
+                
                 text = text.replace(/\[Edad\]/g, age.toString());
                 text = text.replace(/\[Signo zodiacal\]/g, zodiac);
 
@@ -2019,8 +2094,8 @@
         }
 
         function closeInfoPopup() {
-            // Save to registry before closing (if in Spectator+ mode)
-            if (magicMode === 'spectator' && spectatorName && spectatorNumbers.length >= 2) {
+            // Save to registry before closing (if in Spectator+ mode and nameMode is 'name')
+            if (magicMode === 'spectator' && nameMode === 'name' && spectatorName && spectatorNumbers.length >= 2) {
                 const birthdate = spectatorNumbers[0];
                 const favNumber = spectatorNumbers[1];
                 const age = calculateAge(birthdate);
