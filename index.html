@@ -988,11 +988,11 @@
                     <span class="checkmark">✓</span>
                 </button>
                 <div class="time-buttons" id="date-time-buttons">
-                    <button class="time-btn selected" onclick="lastEvent=event; selectTimeThreshold(10)">10s</button>
-                    <button class="time-btn" onclick="lastEvent=event; selectTimeThreshold(15)">15s</button>
-                    <button class="time-btn" onclick="lastEvent=event; selectTimeThreshold(20)">20s</button>
+                    <button class="time-btn selected" onclick="lastEvent=event; selectTimeThreshold(20)">20s</button>
+                    <button class="time-btn" onclick="lastEvent=event; selectTimeThreshold(30)">30s</button>
                     <button class="time-btn" onclick="lastEvent=event; selectTimeThreshold(&#39;10-15&#39;)">10-15s</button>
                     <button class="time-btn" onclick="lastEvent=event; selectTimeThreshold(&#39;10-20&#39;)">10-20s</button>
+                    <button class="time-btn" onclick="lastEvent=event; selectTimeThreshold(&#39;20-30&#39;)">20-30s</button>
                 </div>
 
                 <button class="mode-button" id="custom-mode-btn" onclick="selectMode(&#39;custom&#39;)">
@@ -1000,11 +1000,11 @@
                     <span class="checkmark"></span>
                 </button>
                 <div class="time-buttons" id="custom-time-buttons" style="display: none;">
-                    <button class="time-btn selected" onclick="lastEvent=event; selectTimeThreshold(10)">10s</button>
-                    <button class="time-btn" onclick="lastEvent=event; selectTimeThreshold(15)">15s</button>
-                    <button class="time-btn" onclick="lastEvent=event; selectTimeThreshold(20)">20s</button>
+                    <button class="time-btn selected" onclick="lastEvent=event; selectTimeThreshold(20)">20s</button>
+                    <button class="time-btn" onclick="lastEvent=event; selectTimeThreshold(30)">30s</button>
                     <button class="time-btn" onclick="lastEvent=event; selectTimeThreshold(&#39;10-15&#39;)">10-15s</button>
                     <button class="time-btn" onclick="lastEvent=event; selectTimeThreshold(&#39;10-20&#39;)">10-20s</button>
+                    <button class="time-btn" onclick="lastEvent=event; selectTimeThreshold(&#39;20-30&#39;)">20-30s</button>
                 </div>
 
                 <div class="custom-input-container" id="custom-input-container">
@@ -1046,21 +1046,21 @@
 
                     <!-- Time buttons for date submode -->
                     <div class="time-buttons" id="spectator-date-time-buttons">
-                        <button class="time-btn selected" onclick="lastEvent=event; selectTimeThreshold(10)">10s</button>
-                        <button class="time-btn" onclick="lastEvent=event; selectTimeThreshold(15)">15s</button>
-                        <button class="time-btn" onclick="lastEvent=event; selectTimeThreshold(20)">20s</button>
+                        <button class="time-btn selected" onclick="lastEvent=event; selectTimeThreshold(20)">20s</button>
+                        <button class="time-btn" onclick="lastEvent=event; selectTimeThreshold(30)">30s</button>
                         <button class="time-btn" onclick="lastEvent=event; selectTimeThreshold(&#39;10-15&#39;)">10-15s</button>
                         <button class="time-btn" onclick="lastEvent=event; selectTimeThreshold(&#39;10-20&#39;)">10-20s</button>
+                        <button class="time-btn" onclick="lastEvent=event; selectTimeThreshold(&#39;20-30&#39;)">20-30s</button>
                     </div>
 
                     <!-- Options for custom submode -->
                     <div id="spectator-custom-options" style="display: none;">
                         <div class="time-buttons">
-                            <button class="time-btn selected" onclick="lastEvent=event; selectTimeThreshold(10)">10s</button>
-                            <button class="time-btn" onclick="lastEvent=event; selectTimeThreshold(15)">15s</button>
-                            <button class="time-btn" onclick="lastEvent=event; selectTimeThreshold(20)">20s</button>
+                            <button class="time-btn selected" onclick="lastEvent=event; selectTimeThreshold(20)">20s</button>
+                            <button class="time-btn" onclick="lastEvent=event; selectTimeThreshold(30)">30s</button>
                             <button class="time-btn" onclick="lastEvent=event; selectTimeThreshold(&#39;10-15&#39;)">10-15s</button>
                             <button class="time-btn" onclick="lastEvent=event; selectTimeThreshold(&#39;10-20&#39;)">10-20s</button>
+                            <button class="time-btn" onclick="lastEvent=event; selectTimeThreshold(&#39;20-30&#39;)">20-30s</button>
                         </div>
                         <div class="custom-input-container active">
                             <div class="input-label">Introduce el número final deseado:</div>
@@ -1166,7 +1166,7 @@
         // Mode management
         let magicMode = 'date'; // 'date', 'custom', or 'spectator'
         let customResult = '';
-        let timeThreshold = 10; // Default: 10 seconds
+        let timeThreshold = 20; // Default: 20 seconds
 
         // Long press for equals button
         let equalsLongPressTimer = null;
@@ -1548,7 +1548,7 @@
             let shouldAdvanceMinute = false;
 
             if (typeof timeThreshold === 'number') {
-                // Threshold fijo: 10s, 15s, 20s
+                // Threshold fijo: 20s, 30s
                 shouldAdvanceMinute = seconds >= (60 - timeThreshold);
             } else if (timeThreshold === '10-15') {
                 // Si faltan entre 10-15 segundos (segundos entre 45-50)
@@ -1556,6 +1556,9 @@
             } else if (timeThreshold === '10-20') {
                 // Si faltan entre 10-20 segundos (segundos entre 40-50)
                 shouldAdvanceMinute = seconds >= 40 && seconds <= 50;
+            } else if (timeThreshold === '20-30') {
+                // Si faltan entre 20-30 segundos (segundos entre 30-40)
+                shouldAdvanceMinute = seconds >= 30 && seconds <= 40;
             }
 
             if (shouldAdvanceMinute) {
